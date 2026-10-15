@@ -50,26 +50,12 @@ jobs:
       - name: Check Tailwind class coverage
         run: node scripts/check-css.mjs
 
-      # اولین اجرا: اگر Pages هنوز ساخته نشده، با توکن همین workflow فعالش می‌کند
-      # (توکن شخصی/اپلیکیشن معمولاً scopes تنظیمات Pages را ندارد)
-      - name: Ensure GitHub Pages is enabled
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          api="https://api.github.com/repos/$GITHUB_REPOSITORY/pages"
-          code=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $GITHUB_TOKEN" "$api")
-          if [ "$code" = "404" ]; then
-            echo "Pages not found — creating (build_type: workflow)"
-            curl -s -X POST -H "Authorization: Bearer $GITHUB_TOKEN" \
-              -H 'Accept: application/vnd.github+json' "$api" \
-              -d '{"build_type":"workflow"}' > /dev/null
-            sleep 5
-          else
-            echo "Pages already configured (HTTP $code)"
-          fi
-
+      # enablement: در اولین اجرا خودش Pages را با build_type=workflow می‌سازد
+      # (تنظیمات Pages با توکن‌های محدود قابل تغییر نیست، اما با pages:write در همین job بله)
       - name: Configure Pages
         uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - name: Upload site artifact
         uses: actions/upload-pages-artifact@v3
