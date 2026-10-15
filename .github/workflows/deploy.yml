@@ -4,13 +4,26 @@ on:
   push:
     branches:
       - main
+  # امکان اجرای دستی بدون پوش جدید
+  workflow_dispatch:
 
+# جلوگیری از دو بیلد همزمان روی یک رفرنس
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+# برای انتشار از طریق GitHub Pages environment لازم است
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout repository
@@ -19,17 +32,50 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22' # Vite 8 به Node ≥ 20.19 نیاز دارد
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
       - name: Build project
         run: npm run build
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
+      - name: Check Tailwind class coverage
+        run: node scripts/check-css.mjs
+
+      # اولین اجرا: اگر Pages هنوز ساخته نشده، با توکن همین workflow فعالش می‌کند
+      # (توکن شخصی/اپلیکیشن معمولاً scopes تنظیمات Pages را ندارد)
+      - name: Ensure GitHub Pages is enabled
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          api="https://api.github.com/repos/$GITHUB_REPOSITORY/pages"
+          code=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $GITHUB_TOKEN" "$api")
+          if [ "$code" = "404" ]; then
+            echo "Pages not found — creating (build_type: workflow)"
+            curl -s -X POST -H "Authorization: Bearer $GITHUB_TOKEN" \
+              -H 'Accept: application/vnd.github+json' "$api" \
+              -d '{"build_type":"workflow"}' > /dev/null
+            sleep 5
+          else
+            echo "Pages already configured (HTTP $code)"
+          fi
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
+          path: ./dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

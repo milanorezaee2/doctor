@@ -1,13 +1,36 @@
 import { useEffect, useRef } from 'react';
 
-interface Particle {
+/**
+ * پس‌زمینهٔ ذرات — بازنویسی‌شده برای هزینهٔ پایین:
+ * • به‌جای createRadialGradient برای هر ذره در هر فریم، یک اسپرایت پیش‌رندرشده drawImage می‌شود
+ * • قفل ۲۴ فریم/ثانیه (ظاهر یکسان، مصرف باتری یک‌سوم)
+ * • توقف کامل وقتی تب مخفی است
+ * • با prefers-reduced-motion: فقط یک فریم ثابت
+ * • DPR سقف‌دار و شمار ذره بر اساس مساحت
+ */
+
+type Particle = {
   x: number;
   y: number;
   vx: number;
   vy: number;
-  radius: number;
-  opacity: number;
-  pulsePhase: number;
+  r: number;
+  alpha: number;
+};
+
+const CONNECT = 132;
+
+function makeSprite(color: string, size = 24) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const g = c.getContext('2d');
+  if (!g) return c;
+  const grad = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  grad.addColorStop(0, color);
+  grad.addColorStop(1, 'rgba(14,116,144,0)');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, size, size);
+  return c;
 }
 
 export default function AnimatedBackground() {
@@ -15,53 +38,56 @@ export default function AnimatedBackground() {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
+    let width = 0;
+    let height = 0;
+    let raf = 0;
+    let last = 0;
+    let running = true;
 
-    let width = (canvas.width = window.innerWidth);
-    let height = (canvas.height = window.innerHeight);
-    let animId = 0;
+    const sprite = makeSprite('rgba(20,184,166,0.55)');
+    let particles: Particle[] = [];
 
-    const particleCount = Math.min(Math.floor((width * height) / 18000), 70);
-    const connectionDistance = 140;
-
-    const colors = ['#0e7490', '#14b8a6', '#06b6d4'];
-
-    const particles: Particle[] = Array.from({ length: particleCount }, () => ({
-      x: Math.random() * width,
-      y: Math.random() * height,
-      vx: (Math.random() - 0.5) * 0.35,
-      vy: (Math.random() - 0.5) * 0.35,
-      radius: Math.random() * 2.5 + 1,
-      opacity: Math.random() * 0.4 + 0.15,
-      pulsePhase: Math.random() * Math.PI * 2,
-    }));
-
-    const handleResize = () => {
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
+    const seed = () => {
+      const count = Math.min(Math.floor((width * height) / 26000), 46);
+      particles = Array.from({ length: count }, () => ({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vx: (Math.random() - 0.5) * 0.22,
+        vy: (Math.random() - 0.5) * 0.22,
+        r: Math.random() * 1.8 + 0.9,
+        alpha: Math.random() * 0.3 + 0.12,
+      }));
     };
-    window.addEventListener('resize', handleResize);
 
-    let time = 0;
+    const resize = () => {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      seed();
+    };
 
-    const draw = () => {
+    const paint = () => {
       ctx.clearRect(0, 0, width, height);
-      time += 0.01;
 
-      // Draw connections
+      // خطوط اتصال با فاصلهٔ مربّع (بدون sqrt)
+      ctx.lineWidth = 0.7;
       for (let i = 0; i < particles.length; i++) {
         for (let j = i + 1; j < particles.length; j++) {
           const dx = particles[i].x - particles[j].x;
           const dy = particles[i].y - particles[j].y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-
-          if (dist < connectionDistance) {
-            const alpha = (1 - dist / connectionDistance) * 0.12;
-            ctx.strokeStyle = `rgba(14, 116, 144, ${alpha})`;
-            ctx.lineWidth = 0.8;
+          const d2 = dx * dx + dy * dy;
+          if (d2 < CONNECT * CONNECT) {
+            const a = (1 - d2 / (CONNECT * CONNECT)) * 0.1;
+            ctx.strokeStyle = `rgba(14,116,144,${a.toFixed(3)})`;
             ctx.beginPath();
             ctx.moveTo(particles[i].x, particles[i].y);
             ctx.lineTo(particles[j].x, particles[j].y);
@@ -70,54 +96,57 @@ export default function AnimatedBackground() {
         }
       }
 
-      // Draw particles
-      particles.forEach((p) => {
-        p.x += p.vx;
-        p.y += p.vy;
-        p.pulsePhase += 0.02;
-
-        // Wrap around edges
-        if (p.x < -10) p.x = width + 10;
-        if (p.x > width + 10) p.x = -10;
-        if (p.y < -10) p.y = height + 10;
-        if (p.y > height + 10) p.y = -10;
-
-        const pulse = Math.sin(p.pulsePhase) * 0.3 + 0.7;
-        const r = p.radius * pulse;
-        const color = colors[Math.floor((p.x + p.y) / 200) % colors.length];
-
-        // Glow
-        const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 4);
-        gradient.addColorStop(0, `${color}${Math.floor(p.opacity * 255).toString(16).padStart(2, '0')}`);
-        gradient.addColorStop(1, 'rgba(14, 116, 144, 0)');
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, r * 4, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Core
-        ctx.fillStyle = `${color}${Math.floor(p.opacity * 200).toString(16).padStart(2, '0')}`;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-        ctx.fill();
-      });
-
-      animId = requestAnimationFrame(draw);
+      for (const p of particles) {
+        const s = p.r * 9;
+        ctx.globalAlpha = p.alpha;
+        ctx.drawImage(sprite, p.x - s / 2, p.y - s / 2, s, s);
+      }
+      ctx.globalAlpha = 1;
     };
 
-    draw();
+    const step = (now: number) => {
+      raf = requestAnimationFrame(step);
+      if (!running) return;
+      if (now - last < 42) return; // ≈۲۴fps
+      last = now;
+
+      for (const p of particles) {
+        p.x += p.vx * 1.8;
+        p.y += p.vy * 1.8;
+        if (p.x < -12) p.x = width + 12;
+        if (p.x > width + 12) p.x = -12;
+        if (p.y < -12) p.y = height + 12;
+        if (p.y > height + 12) p.y = -12;
+      }
+      paint();
+    };
+
+    resize();
+    window.addEventListener('resize', resize);
+
+    const onVisibility = () => {
+      running = !document.hidden;
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    if (reduced) {
+      paint(); // یک فریم ثابت، بدون حلقه
+    } else {
+      raf = requestAnimationFrame(step);
+    }
 
     return () => {
-      cancelAnimationFrame(animId);
-      window.removeEventListener('resize', handleResize);
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', resize);
+      document.removeEventListener('visibilitychange', onVisibility);
     };
   }, []);
 
   return (
     <canvas
       ref={canvasRef}
-      className="fixed inset-0 pointer-events-none z-0"
-      style={{ opacity: 0.5 }}
+      aria-hidden="true"
+      className="pointer-events-none fixed inset-0 z-0 opacity-45"
     />
   );
 }

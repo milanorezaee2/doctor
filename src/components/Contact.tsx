@@ -1,162 +1,255 @@
-import { useState } from 'react';
-import { MapPin, Phone, Mail, Clock, Calendar, CheckCircle } from 'lucide-react';
-import { useReveal } from '@/hooks/useReveal';
+import { useMemo, useState } from 'react';
+import { Check, Clock, ExternalLink, MapPin, Send } from 'lucide-react';
+import BrandIcon from '@/components/icons/BrandIcon';
+import SectionHeader from '@/components/SectionHeader';
+import {
+  bookingHref,
+  hasWhatsapp,
+  mailHref,
+  mapHref,
+  mapEmbed,
+  site,
+  telHref,
+  whatsappHref,
+} from '@/site';
 
-const contactInfo = [
-  { icon: MapPin, label: 'آدرس', value: 'تهران، خیابان ولیعصر، بالاتر از پارک‌وی، کلینیک تخصصی طب سوزنی' },
-  { icon: Phone, label: 'تلفن تماس', value: '۰۲۱-۲۲۳۴۵۶۷۸' },
-  { icon: Mail, label: 'ایمیل', value: 'info@dr-hashtroodi.com' },
-  { icon: Clock, label: 'ساعات کاری', value: 'شنبه تا چهارشنبه: ۹ تا ۱۸ | پنجشنبه: ۹ تا ۱۳' },
-];
+type FormState = { name: string; phone: string; condition: string; message: string };
+const empty: FormState = { name: '', phone: '', condition: '', message: '' };
 
 export default function Contact() {
-  const { ref, active } = useReveal<HTMLDivElement>();
-  const [submitted, setSubmitted] = useState(false);
-  const [form, setForm] = useState({
-    name: '',
-    phone: '',
-    condition: '',
-    message: '',
-  });
+  const [form, setForm] = useState<FormState>(empty);
+  const [sent, setSent] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitted(true);
-    setTimeout(() => {
-      setSubmitted(false);
-      setForm({ name: '', phone: '', condition: '', message: '' });
-    }, 4000);
-  };
+  const composed = useMemo(
+    () =>
+      [
+        `نام: ${form.name || '—'}`,
+        `تماس: ${form.phone || '—'}`,
+        `وضعیت / بیماری: ${form.condition || '—'}`,
+        `توضیح: ${form.message || '—'}`,
+      ].join('\n'),
+    [form]
+  );
+
+  const submitHref = hasWhatsapp
+    ? whatsappHref(`سلام. برای ارزیابی و تعیین وقت:\n\n${composed}`)
+    : mailHref('درخواست وقت ویزیت — وب‌سایت', composed);
+
+  const canSubmit = form.name.trim().length > 1 && form.phone.trim().length > 6;
+
+  const set = (k: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const field =
+    'w-full rounded-xl border border-white/12 bg-white/6 px-4 py-3 text-[15px] text-white outline-none transition-all duration-300 placeholder:text-ink-500 focus:border-teal-soft/60 focus:bg-white/10';
 
   return (
-    <section id="contact" className="py-24 bg-slate-900 relative overflow-hidden">
-      {/* Decoration */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-1/3 right-0 w-96 h-96 bg-cyan-500 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-80 h-80 bg-teal-500 rounded-full blur-3xl" />
-      </div>
+    <section id="contact" className="relative overflow-hidden bg-ink-950 py-20 text-white lg:py-28">
+      <div className="pointer-events-none absolute inset-0 grain opacity-[0.13]" />
+      <div className="pointer-events-none absolute -top-32 start-1/4 h-96 w-96 rounded-full bg-teal-brand/12 blur-[130px]" />
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
-        <div ref={ref} className={`reveal ${active ? 'active' : ''}`}>
-          <div className="text-center mb-16">
-            <span className="inline-block px-4 py-1.5 rounded-full bg-cyan-500/20 text-cyan-300 text-sm font-medium mb-4">
-              تماس و نوبت‌دهی
-            </span>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white mb-4">
-              <span className="gradient-text">رزرو نوبت</span> و مشاوره
-            </h2>
-            <p className="text-slate-400 max-w-2xl mx-auto leading-relaxed">
-              برای رزرو نوبت یا مشاوره رایگان، فرم زیر را تکمیل کنید یا با ما تماس بگیرید
-            </p>
-            <div className="section-divider w-32 mx-auto mt-4" />
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <SectionHeader
+          tone="dark"
+          align="start"
+          eyebrow="تماس و نوبت‌دهی"
+          title={
+            <>
+              یک پیام کافی است — <span className="gradient-text-light">پاسخ در ساعات کاری</span>
+            </>
+          }
+          lead={site.contact.responseNote}
+        />
+
+        <div className="mt-12 grid gap-6 lg:grid-cols-12 lg:gap-8">
+          {/* راه‌های ارتباطی */}
+          <div className="space-y-3 lg:col-span-5">
+            {[
+              {
+                icon: 'phone' as const,
+                label: 'تلفن مطب',
+                value: site.contact.telDisplay,
+                href: telHref,
+                note: 'سریع‌ترین راه برای هماهنگی ساعت ویزیت',
+              },
+              hasWhatsapp
+                ? {
+                    icon: 'whatsapp' as const,
+                    label: 'واتساپ',
+                    value: site.contact.whatsapp,
+                    href: whatsappHref('سلام. برای تعیین وقت ویزیت پیام می‌دهم.'),
+                    note: 'ارسال عکس پرونده و پرسش کوتاه',
+                  }
+                : {
+                    icon: 'mail' as const,
+                    label: 'ایمیل',
+                    value: site.contact.email,
+                    href: mailHref('درخواست اطلاعات', 'سلام.\n\n'),
+                    note: 'مناسب برای ارسال مدارک و پرسش مفصل',
+                  },
+              {
+                icon: 'map' as const,
+                label: 'آدرس مطب',
+                value: site.contact.address,
+                href: mapHref,
+                note: 'باز کردن مسیر در گوگل‌مپ',
+              },
+            ].map((row) => (
+              <a
+                key={row.label}
+                href={row.href}
+                target={row.icon === 'map' ? '_blank' : undefined}
+                rel={row.icon === 'map' ? 'noopener noreferrer' : undefined}
+                className="group flex items-start gap-4 rounded-2xl glass-dark p-5 transition-all duration-400 hover:bg-white/10"
+              >
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-linear-to-br from-teal-brand to-teal-soft">
+                  {row.icon === 'phone' ? (
+                    <span className="grid h-5 w-5 place-items-center">
+                      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden="true">
+                        <path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1 11.4 11.4 0 0 0 .57 3.6 1 1 0 0 1-.25 1z" />
+                      </svg>
+                    </span>
+                  ) : row.icon === 'map' ? (
+                    <MapPin className="h-5 w-5 text-white" />
+                  ) : row.icon === 'whatsapp' ? (
+                    <BrandIcon name="whatsapp" className="h-5 w-5 text-white" />
+                  ) : (
+                    <Send className="h-5 w-5 text-white" />
+                  )}
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-[12px] font-semibold text-teal-soft/85">{row.label}</span>
+                  <span className="mt-1 block text-[15px] font-bold leading-relaxed text-white">
+                    {row.value}
+                  </span>
+                  <span className="mt-1 flex items-center gap-1 text-[12px] text-ink-500 transition-colors group-hover:text-teal-soft">
+                    {row.note}
+                    <ExternalLink className="h-3 w-3" />
+                  </span>
+                </span>
+              </a>
+            ))}
+
+            {/* ساعات کاری */}
+            <div className="rounded-2xl border border-white/10 p-5">
+              <p className="flex items-center gap-2 text-[12px] font-semibold text-teal-soft/85">
+                <Clock className="h-4 w-4" />
+                ساعات کاری
+              </p>
+              <ul className="mt-3 space-y-2">
+                {site.contact.hours.map((h) => (
+                  <li key={h.day} className="flex items-center justify-between text-[14px]">
+                    <span className="text-ink-300">{h.day}</span>
+                    <span className="tabular font-bold text-white">{h.time}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-8">
-            {/* Contact info */}
-            <div className="space-y-4">
-              {contactInfo.map((info, i) => {
-                const Icon = info.icon;
-                return (
-                  <div
-                    key={i}
-                    className="flex items-start gap-4 p-5 rounded-2xl glass-dark card-hover"
-                  >
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-teal-400 flex items-center justify-center flex-shrink-0">
-                      <Icon className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-cyan-300 text-sm font-medium mb-1">{info.label}</p>
-                      <p className="text-white text-sm leading-relaxed">{info.value}</p>
-                    </div>
-                  </div>
-                );
-              })}
+          {/* فرم — بدون بک‌اند، پیام را به واتساپ/ایمیل می‌برد */}
+          <div className="lg:col-span-7">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                window.location.href = submitHref;
+                setSent(true);
+                window.setTimeout(() => {
+                  setSent(false);
+                  setForm(empty);
+                }, 5000);
+              }}
+              className="rounded-[1.6rem] border border-white/10 bg-linear-to-br from-white/8 to-transparent p-6 backdrop-blur-md sm:p-8"
+            >
+              <h3 className="text-lg font-extrabold text-white">فرم درخواست ویزیت</h3>
+              <p className="mt-2 text-[13px] leading-relaxed text-ink-300">
+                {hasWhatsapp
+                  ? 'با زدن دکمهٔ زیر، پیام شما در واتساپ آمادهٔ ارسال می‌شود — شماره‌ای در دیتابیس ذخیره نمی‌شود.'
+                  : 'با زدن دکمهٔ زیر، متن پیام در ایمیل شما آماده می‌شود. برای دریافت پیامک، شمارهٔ واتساپ مطب را در src/site.ts وارد کنید.'}
+              </p>
 
-              {/* Map placeholder */}
-              <div className="rounded-2xl overflow-hidden h-48 glass-dark">
-                <iframe
-                  src="https://maps.google.com/maps?q=Tehran%20Valiasr&t=&z=13&ie=UTF8&iwloc=&output=embed"
-                  className="w-full h-full border-0 opacity-80"
-                  loading="lazy"
-                  title="موقعیت کلینیک"
-                />
+              <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-1.5 block text-[12.5px] font-semibold text-ink-300">نام و نام خانوادگی *</span>
+                  <input value={form.name} onChange={set('name')} className={field} placeholder="مثلاً مریم احمدی" required />
+                </label>
+                <label className="block">
+                  <span className="mb-1.5 block text-[12.5px] font-semibold text-ink-300">شمارهٔ تماس *</span>
+                  <input
+                    value={form.phone}
+                    onChange={set('phone')}
+                    className={`tabular ${field}`}
+                    placeholder="09xxxxxxxxx"
+                    inputMode="tel"
+                    required
+                  />
+                </label>
               </div>
-            </div>
 
-            {/* Form */}
-            <div className="glass-dark rounded-3xl p-8">
-              {submitted ? (
-                <div className="h-full flex flex-col items-center justify-center text-center py-12">
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-500 to-teal-400 flex items-center justify-center mb-6 animate-scaleIn">
-                    <CheckCircle className="w-10 h-10 text-white" />
-                  </div>
-                  <h3 className="text-white font-bold text-xl mb-3">درخواست شما ثبت شد!</h3>
-                  <p className="text-slate-400 text-sm">به زودی با شما تماس خواهیم گرفت.</p>
-                </div>
-              ) : (
-                <form onSubmit={handleSubmit} className="space-y-5">
-                  <div>
-                    <label className="block text-cyan-300 text-sm font-medium mb-2">نام و نام خانوادگی</label>
-                    <input
-                      type="text"
-                      required
-                      value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all"
-                      placeholder="نام خود را وارد کنید"
-                    />
-                  </div>
+              <label className="mt-4 block">
+                <span className="mb-1.5 block text-[12.5px] font-semibold text-ink-300">بیماری یا علامت اصلی</span>
+                <input
+                  value={form.condition}
+                  onChange={set('condition')}
+                  className={field}
+                  placeholder="مثلاً ام‌اس · درد مزمن کمر · بی‌حسی پا"
+                  list="conditions-list"
+                />
+                <datalist id="conditions-list">
+                  {site.conditions.map((c) => (
+                    <option key={c.name} value={c.name} />
+                  ))}
+                </datalist>
+              </label>
 
-                  <div>
-                    <label className="block text-cyan-300 text-sm font-medium mb-2">شماره تماس</label>
-                    <input
-                      type="tel"
-                      required
-                      value={form.phone}
-                      onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all"
-                      placeholder="۰۹۱۲۳۴۵۶۷۸۹"
-                    />
-                  </div>
+              <label className="mt-4 block">
+                <span className="mb-1.5 block text-[12.5px] font-semibold text-ink-300">توضیح کوتاه</span>
+                <textarea
+                  value={form.message}
+                  onChange={set('message')}
+                  rows={4}
+                  className={`${field} resize-none`}
+                  placeholder="از کی شروع شده، چه درمان‌هایی رفته‌اید و الان کدام داروها را مصرف می‌کنید."
+                />
+              </label>
 
-                  <div>
-                    <label className="block text-cyan-300 text-sm font-medium mb-2">نوع بیماری</label>
-                    <select
-                      required
-                      value={form.condition}
-                      onChange={(e) => setForm({ ...form, condition: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all"
-                    >
-                      <option value="" className="bg-slate-800">انتخاب کنید</option>
-                      <option value="ms" className="bg-slate-800">ام‌اس</option>
-                      <option value="gbs" className="bg-slate-800">گیلن‌باره</option>
-                      <option value="autoimmune" className="bg-slate-800">بیماری خودایمنی</option>
-                      <option value="neuropathy" className="bg-slate-800">نوروپاتی</option>
-                      <option value="vegetative" className="bg-slate-800">بیماری Vegetative</option>
-                      <option value="other" className="bg-slate-800">سایر</option>
-                    </select>
-                  </div>
+              <div className="mt-6 flex flex-wrap items-center gap-4">
+                <button
+                  type="submit"
+                  disabled={!canSubmit}
+                  className="btn-primary inline-flex items-center gap-2 rounded-xl px-6 py-3.5 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-45"
+                >
+                  {sent ? <Check className="h-4.5 w-4.5" /> : <Send className="h-4.5 w-4.5" />}
+                  {sent ? 'پیام باز شد — ارسال را بزنید' : 'ارسال درخواست ویزیت'}
+                </button>
+                <a href={bookingHref} className="text-[13px] font-bold text-teal-soft hover:underline">
+                  عجله دارید؟ زنگ بزنید
+                </a>
+              </div>
 
-                  <div>
-                    <label className="block text-cyan-300 text-sm font-medium mb-2">توضیحات</label>
-                    <textarea
-                      rows={4}
-                      value={form.message}
-                      onChange={(e) => setForm({ ...form, message: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all resize-none"
-                      placeholder="علائم و شرح حال خود را بنویسید..."
-                    />
-                  </div>
+              <p className="mt-4 text-[11.5px] leading-relaxed text-ink-500">
+                این فرم جایگزین اورژانس پزشکی نیست. در موارد اورژانس با ۱۱۵ تماس بگیرید.
+              </p>
+            </form>
 
-                  <button
-                    type="submit"
-                    className="w-full btn-primary py-3.5 rounded-xl font-bold text-white flex items-center justify-center gap-2"
-                  >
-                    <Calendar className="w-5 h-5" />
-                    ثبت درخواست نوبت
-                  </button>
-                </form>
-              )}
+            {/* نقشه */}
+            <div className="mt-4 overflow-hidden rounded-[1.4rem] border border-white/10">
+              <iframe
+                src={mapEmbed}
+                title={`نقشهٔ محل مطب — ${site.contact.addressShort}`}
+                className="h-56 w-full grayscale-[0.25] contrast-105"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+              <a
+                href={mapHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between gap-2 bg-white/6 px-5 py-3 text-[13px] font-bold text-teal-soft transition-colors hover:bg-white/10"
+              >
+                {site.contact.address}
+                <ExternalLink className="h-4 w-4" />
+              </a>
             </div>
           </div>
         </div>

@@ -1,62 +1,77 @@
-import { Users, Calendar, Award, Heart } from 'lucide-react';
-import { useReveal } from '@/hooks/useReveal';
+import { Icon } from '@/components/icons';
+import SectionHeader from '@/components/SectionHeader';
 import { useCountUp } from '@/hooks/useCountUp';
+import { useReveal } from '@/hooks/useReveal';
+import { site } from '@/site';
 
-const stats = [
-  { icon: Users, target: 5000, suffix: '+', label: 'بیمار درمان‌شده', color: 'from-cyan-500 to-teal-400' },
-  { icon: Calendar, target: 20, suffix: '+', label: 'سال تجربه بالینی', color: 'from-teal-500 to-emerald-400' },
-  { icon: Award, target: 30, suffix: '+', label: 'مقاله علمی بین‌المللی', color: 'from-cyan-600 to-cyan-400' },
-  { icon: Heart, target: 98, suffix: '%', label: 'رضایت بیماران', color: 'from-emerald-500 to-teal-400' },
+const marqueeItems = [
+  'دکترای تخصصی پزشکی — دانشگاه تهران',
+  'فلوشیپ طب سوزنی',
+  'بورد لیزر درمانی پزشکی',
+  'بیش از ۳۰ مقالهٔ بین‌المللی',
+  'عضو انجمن طب سوزنی ایران',
+  'مطب تهران، ولیعصر',
 ];
 
-function StatCard({ icon: Icon, target, suffix, label, color, start }: {
-  icon: typeof Users;
-  target: number;
-  suffix: string;
-  label: string;
-  color: string;
+function StatCard({
+  item,
+  start,
+}: {
+  item: (typeof site.stats)[number];
   start: boolean;
 }) {
-  const count = useCountUp(target, 2000, start);
-
+  const count = useCountUp(item.target, 1800, start);
   return (
-    <div className="text-center p-8 rounded-3xl glass card-hover">
-      <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${color} flex items-center justify-center mx-auto mb-4 shadow-lg`}>
-        <Icon className="w-8 h-8 text-white" />
-      </div>
-      <p className="text-4xl lg:text-5xl font-black gradient-text counter mb-2">
-        {count.toLocaleString('fa-IR')}{suffix}
+    <div className="group relative rounded-[1.6rem] border border-white/10 bg-white/6 p-6 text-center transition-colors duration-500 hover:bg-white/10">
+      <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-linear-to-br from-teal-brand to-teal-soft shadow-lg transition-transform duration-500 group-hover:scale-110">
+        <Icon name={item.icon} className="h-6 w-6 text-white" />
+      </span>
+      <p className="tabular gradient-text-light mt-5 text-4xl font-extrabold lg:text-[42px]">
+        {count.toLocaleString('fa-IR')}
+        {item.suffix}
       </p>
-      <p className="text-slate-600 font-medium text-sm">{label}</p>
+      <p className="mt-2 text-[15px] font-bold text-white">{item.label}</p>
+      <p className="mt-1.5 text-[12px] leading-relaxed text-ink-500">{item.note}</p>
     </div>
   );
 }
 
 export default function Stats() {
+  // شمارش فقط وقتی سکشن دیده شد — همان useReveal (یک‌بار، بعد disconnect)
   const { ref, active } = useReveal<HTMLDivElement>();
 
   return (
-    <section id="stats" className="py-24 bg-white/95 relative overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute inset-0 medical-pattern opacity-20" />
+    <section id="stats" className="relative overflow-hidden bg-ink-900 py-20 text-white lg:py-24">
+      <div className="pointer-events-none absolute inset-0 grain opacity-[0.12]" />
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
-        <div ref={ref} className={`reveal ${active ? 'active' : ''}`}>
-          <div className="text-center mb-16">
-            <span className="inline-block px-4 py-1.5 rounded-full bg-cyan-100 text-cyan-700 text-sm font-medium mb-4">
-              آمار و دستاوردها
+      {/* Marquee مدارک — حرکت افقیِ خالص CSS */}
+      <div className="relative mb-14 overflow-hidden border-y border-white/10 py-3.5 [mask-image:linear-gradient(90deg,transparent,black_12%,black_88%,transparent)]">
+        <div className="flex w-max animate-marquee items-center gap-8 whitespace-nowrap">
+          {[...marqueeItems, ...marqueeItems].map((t, i) => (
+            <span key={i} className="flex items-center gap-8 text-[13px] font-semibold text-ink-300">
+              {t}
+              <span className="h-1 w-1 rounded-full bg-teal-soft/60" />
             </span>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 mb-4">
-              <span className="gradient-text">دستاوردهای</span> بالینی
-            </h2>
-            <div className="section-divider w-32 mx-auto mt-4" />
-          </div>
+          ))}
+        </div>
+      </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-            {stats.map((s, i) => (
-              <StatCard key={i} {...s} start={active} />
-            ))}
-          </div>
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <SectionHeader
+          tone="dark"
+          eyebrow="آمار مطب"
+          title={
+            <>
+              ۲۰ سال، <span className="gradient-text-light">۵۰۰۰ پرونده</span>، یک روش: اندازه‌گیری
+            </>
+          }
+          lead="پشت هر عدد، یک پروندهٔ بالینی با تاریخ و نمرهٔ ثبت‌شده است."
+        />
+
+        <div ref={ref} className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {site.stats.map((s) => (
+            <StatCard key={s.label} item={s} start={active} />
+          ))}
         </div>
       </div>
     </section>

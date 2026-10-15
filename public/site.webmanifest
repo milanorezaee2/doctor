@@ -1,0 +1,21 @@
+{
+  "name": "دکتر محمدرضا هشترودی — طب سوزنی و لیزر درمانی",
+  "short_name": "دکتر هشترودی",
+  "description": "درمان کمکی ام‌اس، دردهای عصبی و بیماری‌های خودایمنی با طب سوزنی و لیزر کم‌توان",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#faf7f2",
+  "theme_color": "#0f1720",
+  "lang": "fa",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
