@@ -4,26 +4,18 @@ on:
   push:
     branches:
       - main
-  # امکان اجرای دستی بدون پوش جدید
   workflow_dispatch:
 
-# جلوگیری از دو بیلد همزمان روی یک رفرنس
 concurrency:
   group: pages-${{ github.ref }}
   cancel-in-progress: true
 
-# برای انتشار از طریق GitHub Pages environment لازم است
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write # برای پوش کردن شاخهٔ gh-pages لازم است
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout repository
@@ -50,18 +42,19 @@ jobs:
       - name: Check Tailwind class coverage
         run: node scripts/check-css.mjs
 
-      # enablement: در اولین اجرا خودش Pages را با build_type=workflow می‌سازد
-      # (تنظیمات Pages با توکن‌های محدود قابل تغییر نیست، اما با pages:write در همین job بله)
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
-
-      - name: Upload site artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./dist
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      # انتشار روی «Deploy from a branch» — بدون نیاز به هیچ اکشن شخص‌ثالث:
+      # محتوای dist با یک force-push به شاخهٔ gh-pages می‌رود.
+      # یک‌بار در Settings → Pages کافی است: Source = Deploy from a branch، gh-pages، /(root)
+      - name: Publish dist to gh-pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd dist
+          git init -q
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add -A
+          git commit -q -m "deploy: ${GITHUB_SHA}"
+          git push -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            HEAD:refs/heads/gh-pages
+          echo "✓ gh-pages با commit ${GITHUB_SHA:0:7} به‌روزرسانی شد"

@@ -2,6 +2,13 @@
 
 تک‌صفحه‌ایِ فارسی و راست‌به‌چپ، ساخته‌شده با **React 19 + TypeScript + Vite 8 + Tailwind CSS v4** (بدون بک‌اند؛ خروجی استاتیک روی GitHub Pages).
 
+## پیش‌نمایش سریع بدون سرور
+
+```bash
+npm run preview:file   # → dist-standalone/doctor-site.html
+```
+همه‌چیز (JS، CSS، فونت‌ها) داخل یک فایل HTML است؛ با دابل‌کلیک روی `file://` هم کامل کار می‌کند — برای اینکه سایت را بیرون از هر محیطی ببینید.
+
 ## اجرای محلی
 
 ```bash
@@ -57,3 +64,14 @@ import portrait from '@/assets/doctor.jpg?w=640;960;1280&format=avif,webp';
 و آدرس‌های `milanorezaee2.github.io/doctor` را در `index.html`، `src/components/Seo.tsx`، `public/sitemap.xml` و `public/robots.txt` جایگزین کنید.
 
 > پیشنهاد کاملِ ارتقا محتوا/تصویر/ساختار و وضعیت اجرای آن: [`docs/content-ux-proposal.md`](docs/content-ux-proposal.md)
+
+## انتشار روی GitHub Pages
+
+`dist/` با هر پوش روی `main` توسط workflow به شاخهٔ `gh-pages` فرستاده می‌شود
+(`.github/workflows/deploy.yml`). یک‌بار لازم است در ریپو:
+
+**Settings → Pages → Source: `Deploy from a branch` → Branch: `gh-pages` / `/ (root)` → Save**
+
+سپس سایت روی `https://<username>.github.io/doctor/` سرو می‌شود (هم‌راستا با `base: '/doctor/'`).
+اگر منبع را روی **GitHub Actions** گذاشتید، به‌جای پوش دستی، مراحل `configure-pages` +
+`upload-pages-artifact` + `deploy-pages` را به workflow برگردانید (`permissions.pages: write`).
