@@ -1,98 +1,69 @@
-import { Quote, Star } from 'lucide-react';
-import { useReveal } from '@/hooks/useReveal';
+import { MapPin, Quote } from 'lucide-react';
+import SectionHeader from '@/components/SectionHeader';
+import { site } from '@/site';
 
-const testimonials = [
-  {
-    name: 'مریم احمدی',
-    condition: 'بیماری ام‌اس',
-    text: 'بعد از سال‌ها دست و پنجه نرم کردن با ام‌اس، با درمان طب سوزنی و لیزر توسط دکتر هشترودی، علائمم به شدت کاهش پیدا کرد. واقعاً زندگی‌ام تغییر کرد.',
-    rating: 5,
-  },
-  {
-    name: 'علی رضایی',
-    condition: 'گیلن‌باره',
-    text: 'دکتر هشترودی با روش ترکیبی اکوپانکچر و لیزر، به من کمک کرد تا دوباره بتوانم راه بروم. تجربه‌ای فوق‌العاده بود.',
-    rating: 5,
-  },
-  {
-    name: 'زهرا کریمی',
-    condition: 'نوروپاتی محیطی',
-    text: 'سوزن‌سوزن شدن دست و پاها آزارم می‌داد. بعد از چند جلسه درمان، علائمم کاملاً برطرف شد. ممنونم از دکتر هشترودی.',
-    rating: 5,
-  },
-  {
-    name: 'حسین موسوی',
-    condition: 'درد مزمن کمر',
-    text: 'سال‌ها با کمردرد زندگی می‌کردم. طب سوزنی نتیجه‌ای داد که هیچ دارویی نتوانسته بود. واقعاً حرفه‌ای.',
-    rating: 5,
-  },
-  {
-    name: 'فاطمه نوری',
-    condition: 'بیماری خودایمنی',
-    text: 'تنظیم سیستم ایمنی‌ام با طب سوزنی باعث شد داروهای شیمیایی‌ام را کاهش دهم. دکتر هشترودی واقعاً متخصص هستند.',
-    rating: 5,
-  },
-  {
-    name: 'محمد تقی‌پور',
-    condition: 'سکته مغزی',
-    text: 'بعد از سکته مغزی، بازتوانی با لیزر و طب سوزنی سرعت بهبودی‌ام را بالا برد. از دکتر هشترودی بسیار سپاسگزارم.',
-    rating: 5,
-  },
-];
+const fa = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+const toFa = (v: string) =>
+  v.replace(/\d/g, (d) => fa[Number(d)] ?? d);
+
+/** حرف اول نام به‌جای چهره — بدون ساختن «بیمار جعلی» */
+function Monogram({ name }: { name: string }) {
+  const letter = toFa(name.trim().charAt(0));
+  const hues = ['from-teal-deep to-teal-brand', 'from-ink-700 to-ink-500', 'from-gold to-[oklch(0.62_0.1_75)]'];
+  const hue = hues[(name.charCodeAt(0) + name.length) % hues.length];
+  return (
+    <span
+      aria-hidden="true"
+      className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-linear-to-br ${hue} text-base font-extrabold text-white shadow-sm`}
+    >
+      {letter}
+    </span>
+  );
+}
 
 export default function Testimonials() {
-  const { ref, active } = useReveal<HTMLDivElement>();
-
   return (
-    <section id="testimonials" className="py-24 bg-slate-50/95 relative overflow-hidden">
-      <div className="absolute inset-0 medical-pattern opacity-20" />
+    <section id="testimonials" className="relative overflow-hidden bg-sand-100 py-20 lg:py-28">
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <SectionHeader
+          align="start"
+          eyebrow="تجربهٔ بیماران"
+          title={
+            <>
+              روز اول تا <span className="gradient-text">جلسهٔ دوازدهم</span>
+            </>
+          }
+          lead="آنچه بیماران تغییر کرده‌اند، با ذکر برنامه و تعداد جلسه. هیچ «۵ ستاره»ای اینجا وجود ندارد — چون چیزی که اندازه نگرفته‌ایم را ادعا نمی‌کنیم."
+        />
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
-        <div ref={ref} className={`reveal ${active ? 'active' : ''}`}>
-          <div className="text-center mb-16">
-            <span className="inline-block px-4 py-1.5 rounded-full bg-teal-100 text-teal-700 text-sm font-medium mb-4">
-              تجربه بیماران
-            </span>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 mb-4">
-              <span className="gradient-text">تجربه</span> بیماران
-            </h2>
-            <p className="text-slate-500 max-w-2xl mx-auto leading-relaxed">
-              داستان واقعی بیمارانی که با درمان‌های تخصصی دکتر هشترودی به بهبودی رسیدند
-            </p>
-            <div className="section-divider w-32 mx-auto mt-4" />
-          </div>
+        {/* اسکرول افقی با snap روی موبایل، گرید روی دسکتاپ */}
+        <div className="no-scrollbar -mx-4 mt-12 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 lg:mx-0 lg:grid lg:grid-cols-3 lg:gap-5 lg:overflow-visible lg:px-0">
+          {site.testimonials.map((t, i) => (
+            <figure
+              key={t.name}
+              className="reveal reveal-native card-hover group relative w-[85%] min-w-[19rem] shrink-0 snap-start rounded-[1.6rem] border border-ink-900/6 bg-white p-6 shadow-sm lg:w-auto lg:min-w-0"
+              style={{ transitionDelay: `${i * 55}ms` }}
+            >
+              <Quote className="h-7 w-7 text-teal-brand/22 transition-colors duration-500 group-hover:text-teal-brand/45" />
+              <blockquote className="mt-4 text-[14.5px] leading-loose text-ink-800/90">{t.text}</blockquote>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {testimonials.map((t, i) => (
-              <div
-                key={i}
-                className="relative p-6 rounded-3xl bg-white shadow-md border border-slate-100 card-hover"
-                style={{ transitionDelay: `${i * 80}ms` }}
-              >
-                <Quote className="absolute top-6 left-6 w-10 h-10 text-cyan-100" />
-
-                {/* Rating */}
-                <div className="flex gap-1 mb-4 relative">
-                  {Array.from({ length: t.rating }).map((_, j) => (
-                    <Star key={j} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-
-                <p className="text-sm text-slate-600 leading-relaxed mb-6 relative">{t.text}</p>
-
-                <div className="flex items-center gap-3 pt-4 border-t border-slate-100">
-                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-cyan-600 to-teal-500 flex items-center justify-center text-white font-bold text-sm">
-                    {t.name.charAt(0)}
-                  </div>
-                  <div>
-                    <p className="font-bold text-slate-800 text-sm">{t.name}</p>
-                    <p className="text-xs text-cyan-600">{t.condition}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+              <figcaption className="mt-6 flex items-center gap-3 border-t border-ink-900/6 pt-5">
+                <Monogram name={t.name} />
+                <span className="min-w-0">
+                  <span className="block truncate text-[14px] font-bold text-ink-900">{t.name}</span>
+                  <span className="mt-0.5 block text-[11.5px] font-medium text-ink-500">
+                    {t.since} · {t.program}
+                  </span>
+                </span>
+              </figcaption>
+            </figure>
+          ))}
         </div>
+
+        <p className="mt-4 flex items-center justify-center gap-1.5 text-[12px] text-ink-500 lg:mt-8">
+          <MapPin className="h-3.5 w-3.5" />
+          نام‌ها کوتاه‌شده‌اند؛ متن نظرات با رضایت بیمار منتشر می‌شود.
+        </p>
       </div>
     </section>
   );
